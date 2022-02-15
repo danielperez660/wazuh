@@ -172,3 +172,27 @@ def test_db_maintenance(class_, sql_file, db_name):
         last_log_key_after = query.fetchone()[0]
 
         assert(last_log_key_before == last_log_key_after)
+
+
+@pytest.mark.parametrize('date, expected_date', [
+    ('2021/1/19','20210119'),
+    ('2021/1/1', '20210101'),
+    ('2021/01/01', '20210101'),
+    ('2000/2/12', '20000212'),
+    ('2022/02/1', '20220201')
+])
+@pytest.mark.parametrize('target_class',[aws_s3.AWSBucket, aws_s3.AWSConfigBucket])
+def test_bucket_format_created_date(date: str, expected_date: str, target_class):
+    """
+    Test AWSBucket's format_created_date method.
+
+    Parameters
+    ----------
+    date : str
+        The date introduced.
+    expected_date : str
+        The date that the method should return.
+    target_class : class
+        The target that should be called to test the method.
+    """
+    assert target_class.format_created_date(date) == expected_date

@@ -396,6 +396,25 @@ class AWSBucket(WazuhIntegration):
     date_format : str
         The format that the service uses to store the date in the bucket's path.
     """
+    date_format = "%Y/%m/%d"
+    db_date_format = "%Y%m%d"
+
+    @classmethod
+    def format_created_date(cls, date: str) -> str:
+        """
+        Return a date with the format used by the created_date field of the database.
+
+        Parameters
+        ----------
+        date : str
+            Date in the "%Y/%m/%d" format.
+
+        Returns
+        -------
+        str
+            Date with the format used by the database.
+        """
+        return datetime.strftime(datetime.strptime(date, cls.date_format), cls.db_date_format)
 
     def __init__(self, reparse, access_key, secret_key, profile, iam_role_arn,
                  bucket, only_logs_after, skip_on_error, account_alias,
@@ -536,7 +555,6 @@ class AWSBucket(WazuhIntegration):
         self.date_regex = re.compile(r'(\d{4}/\d{2}/\d{2})')
         self.prefix_regex= re.compile("^\d{12}$")
         self.check_prefix = False
-        self.date_format = "%Y/%m/%d"
 
     def _same_prefix(self, match_start: int or None, aws_account_id: str, aws_region: str) -> bool:
         """
@@ -717,12 +735,12 @@ class AWSBucket(WazuhIntegration):
         str
             The required marker.
         """
-        return f'{self.get_full_prefix(aws_account_id, aws_region)}{date.strftime(self.date_format)}'
+        return f'{self.get_full_prefix(aws_account_id, aws_region)}{date.strftime(AWSBucket.date_format)}'
 
     def marker_only_logs_after(self, aws_region, aws_account_id):
         return '{init}{only_logs_after}'.format(
             init=self.get_full_prefix(aws_account_id, aws_region),
-            only_logs_after=self.only_logs_after.strftime(self.date_format)
+            only_logs_after=self.only_logs_after.strftime(AWSBucket.date_format)
         )
 
     def get_alert_msg(self, aws_account_id, log_key, event, error_msg=""):
@@ -1083,7 +1101,7 @@ class AWSLogsBucket(AWSBucket):
         log_timestamp = datetime.strptime(filename_parts[3].split('.')[0], '%Y%m%dT%H%M%SZ')
         log_key = '{init}/{date_path}/{log_filename}'.format(
             init=self.get_full_prefix(aws_account_id, aws_region),
-            date_path=datetime.strftime(log_timestamp, self.date_format),
+            date_path=datetime.strftime(log_timestamp, AWSLogsBucket.date_format),
             log_filename=filename
         )
         return aws_region, aws_account_id, log_key
@@ -1220,12 +1238,6 @@ class AWSConfigBucket(AWSLogsBucket):
                     self.iter_files_in_bucket(aws_account_id, aws_region, date)
                 self.db_maintenance(aws_account_id=aws_account_id, aws_region=aws_region)
 
-    def add_zero_to_day(self, date):
-        # add zero to days with one digit
-        aux = datetime.strptime(date.replace('/', ''), '%Y%m%d')
-
-        return datetime.strftime(aux, '%Y%m%d')
-
     def _remove_padding_zeros_from_marker(self, marker: str) -> str:
         """Remove the leading zeros from the month and day of a given marker.
 
@@ -1298,9 +1310,9 @@ class AWSConfigBucket(AWSLogsBucket):
     def build_s3_filter_args(self, aws_account_id, aws_region, date, iterating=False):
         filter_marker = ''
         if self.reparse:
-            filter_marker = self.marker_custom_date(aws_region, aws_account_id, datetime.strptime(date, self.date_format))
+            filter_marker = self.marker_custom_date(aws_region, aws_account_id, datetime.strptime(date, AWSConfigBucket.date_format))
         else:
-            created_date = self.add_zero_to_day(date)
+            created_date = AWSConfigBucket.format_created_date(date)
             query_last_key_of_day = self.db_connector.execute(
                 self.sql_find_last_key_processed_of_day.format(table_name=self.db_table_name,
                                                                bucket_path=self.bucket_path,
@@ -1326,7 +1338,7 @@ class AWSConfigBucket(AWSLogsBucket):
         if not iterating:
             try:
                 extracted_date = self._extract_date_regex.search(filter_marker).group(0)
-                filter_marker_date = datetime.strptime(extracted_date, self.date_format)
+                filter_marker_date = datetime.strptime(extracted_date, AWSConfigBucket.date_format)
             except AttributeError:
                 print(f"ERROR: There was an error while trying to extract a date from the file key '{filter_marker}'")
                 sys.exit(16)
@@ -1682,7 +1694,7 @@ class AWSVPCFlowBucket(AWSLogsBucket):
     def get_date_list(self, aws_account_id, aws_region, flow_log_id):
         num_days = self.get_days_since_today(self.get_date_last_log(aws_account_id, aws_region, flow_log_id))
         date_list_time = [datetime.utcnow() - timedelta(days=x) for x in range(0, num_days)]
-        return [datetime.strftime(date, self.date_format) for date in reversed(date_list_time)]
+        return [datetime.strftime(date, AWSVPCFlowBucket.date_format) for date in reversed(date_list_time)]
 
     def get_date_last_log(self, aws_account_id, aws_region, flow_log_id):
         last_date_processed = self.only_logs_after.strftime('%Y%m%d') if \
@@ -1790,7 +1802,7 @@ class AWSVPCFlowBucket(AWSLogsBucket):
     def build_s3_filter_args(self, aws_account_id, aws_region, date, flow_log_id, iterating=False):
         filter_marker = ''
         if self.reparse:
-            filter_marker = self.marker_custom_date(aws_region, aws_account_id, datetime.strptime(date, self.date_format))
+            filter_marker = self.marker_custom_date(aws_region, aws_account_id, datetime.strptime(date, AWSVPCFlowBucket.date_format))
         else:
             query_last_key_of_day = self.db_connector.execute(
                 self.sql_find_last_key_processed_of_day.format(table_name=self.db_table_name,
@@ -2233,12 +2245,12 @@ class AWSGuardDutyBucket(AWSCustomBucket):
 
 
 class CiscoUmbrella(AWSCustomBucket):
+    date_format = '%Y-%m-%d'
 
     def __init__(self, **kwargs):
         db_table_name = 'cisco_umbrella'
         AWSCustomBucket.__init__(self, db_table_name, **kwargs)
         self.check_prefix = False
-        self.date_format = '%Y-%m-%d'
 
     def load_information_from_file(self, log_key):
         """Load data from a Cisco Umbrella log file."""
@@ -2277,7 +2289,7 @@ class CiscoUmbrella(AWSCustomBucket):
     def marker_only_logs_after(self, aws_region, aws_account_id):
         return '{init}{only_logs_after}'.format(
             init=self.get_full_prefix(aws_account_id, aws_region),
-            only_logs_after=self.only_logs_after.strftime(self.date_format)
+            only_logs_after=self.only_logs_after.strftime(CiscoUmbrella.date_format)
         )
 
 
@@ -2439,12 +2451,12 @@ class AWSNLBBucket(AWSLBBucket):
 
 
 class AWSServerAccess(AWSCustomBucket):
+    date_format = '%Y-%m-%d'
 
     def __init__(self, **kwargs):
         db_table_name = 's3_server_access'
         AWSCustomBucket.__init__(self, db_table_name=db_table_name, **kwargs)
         self.date_regex = re.compile(r'(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2})')
-        self.date_format = '%Y-%m-%d'
 
     def _key_is_old(self, file_date: datetime or None, last_key_date: datetime or None) -> bool:
         """
@@ -2555,7 +2567,7 @@ class AWSServerAccess(AWSCustomBucket):
         str
             The filter, with the file's prefix and date.
         """
-        return self.get_full_prefix(aws_account_id, aws_region) + self.only_logs_after.strftime(self.date_format)
+        return self.get_full_prefix(aws_account_id, aws_region) + self.only_logs_after.strftime(AWSServerAccess.date_format)
 
     def check_bucket(self):
         """Check if the bucket is empty or the credentials are wrong."""
