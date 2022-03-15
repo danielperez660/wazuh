@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2021, Wazuh Inc.
+/* Copyright (C) 2015-2022, Wazuh Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it
@@ -9,6 +9,7 @@
 
 #include "protocolHandler.hpp"
 
+using std::nullopt;
 using std::optional;
 using std::string;
 using std::throw_with_nested;
@@ -80,13 +81,12 @@ std::shared_ptr<json::Document> ProtocolHandler::parse(const string & event)
     return doc;
 }
 
-optional<vector<string>> ProtocolHandler::process(char * data, size_t length)
+optional<vector<string>> ProtocolHandler::process(const char * data, const size_t length)
 {
     vector<string> events;
 
     for (size_t i = 0; i < length; i++)
     {
-
         switch (m_stage)
         {
             // header
@@ -102,7 +102,7 @@ optional<vector<string>> ProtocolHandler::process(char * data, size_t length)
                 catch (...)
                 {
                     // TODO: improve this try-catch
-                    return std::nullopt;
+                    return nullopt;
                 }
                 break;
 
@@ -121,7 +121,7 @@ optional<vector<string>> ProtocolHandler::process(char * data, size_t length)
                     catch (std::exception & e)
                     {
                         LOG(ERROR) << e.what() << std::endl;
-                        return std::nullopt;
+                        return nullopt;
                     }
                     m_stage = 0;
                 }
@@ -129,7 +129,7 @@ optional<vector<string>> ProtocolHandler::process(char * data, size_t length)
 
             default:
                 LOG(ERROR) << "Invalid stage value." << std::endl;
-                return std::nullopt;
+                return nullopt;
         }
     }
 

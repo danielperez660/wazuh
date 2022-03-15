@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2021, Wazuh Inc.
+/* Copyright (C) 2015-2022, Wazuh Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it
@@ -15,20 +15,12 @@ using std::string;
 namespace engineserver::endpoints
 {
 
-void TCPEndpoint::connectionHandler(uvw::TCPHandle & server)
+void TCPEndpoint::connectionHandler(uvw::TCPHandle & tcpHandle)
 {
-    auto client = server.loop().resource<uvw::TCPHandle>();
+    auto client = tcpHandle.loop().resource<uvw::TCPHandle>();
     auto timer = client->loop().resource<uvw::TimerHandle>();
 
-    auto ph = std::make_shared<ProtocolHandler>();
-
-    client->on<uvw::ErrorEvent>(
-        [](const uvw::ErrorEvent & event, uvw::TCPHandle & client)
-        {
-            LOG(ERROR) << "TCP ErrorEvent: endpoint (" << client.sock().ip.c_str() << ":" << client.sock().port
-                       << ") error: code=" << event.code() << "; name=" << event.name() << "; message=" << event.what()
-                       << endl;
-        });
+    auto protocolHandler = std::make_shared<ProtocolHandler>();
 
     timer->on<uvw::TimerEvent>(
         [client](const auto &, auto & handler)
@@ -38,12 +30,20 @@ void TCPEndpoint::connectionHandler(uvw::TCPHandle & server)
             handler.close();
         });
 
+    client->on<uvw::ErrorEvent>(
+        [](const uvw::ErrorEvent & event, uvw::TCPHandle & client)
+        {
+            LOG(ERROR) << "TCP ErrorEvent: endpoint (" << client.sock().ip.c_str() << ":" << client.sock().port
+                       << ") error: code=" << event.code() << "; name=" << event.name() << "; message=" << event.what()
+                       << endl;
+        });
+
     client->on<uvw::DataEvent>(
-        [&, timer, ph](const uvw::DataEvent & event, uvw::TCPHandle & client)
+        [&, timer, protocolHandler](const uvw::DataEvent & event, uvw::TCPHandle & client)
         {
             // TODO: Are we moving the buffer? we should.
             timer->again();
-            const auto result = ph->process(event.data.get(), event.length);
+            const auto result = protocolHandler->process(event.data.get(), event.length);
             if (result)
             {
                 const auto events = result.value().data();
@@ -69,7 +69,7 @@ void TCPEndpoint::connectionHandler(uvw::TCPHandle & server)
     client->on<uvw::CloseEvent>([](const uvw::CloseEvent & event, uvw::TCPHandle & client)
                                 { LOG(INFO) << "TCP CloseEvent: Connection closed" << endl; });
 
-    server.accept(*client);
+    tcpHandle.accept(*client);
     LOG(INFO) << "TCP ListenEvent: Client accepted" << endl;
 
     timer->start(uvw::TimerHandle::Time{CONNECTION_TIMEOUT_MSEC}, uvw::TimerHandle::Time{CONNECTION_TIMEOUT_MSEC});
@@ -77,40 +77,39 @@ void TCPEndpoint::connectionHandler(uvw::TCPHandle & server)
     client->read();
 }
 
-TCPEndpoint::TCPEndpoint(const string & config, ServerOutput & eventBuffer) : BaseEndpoint{config, eventBuffer}
+TCPEndpoint::TCPEndpoint(const string & config, ServerOutput & eventBuffer)
+    : BaseEndpoint{config, eventBuffer}, m_loop{uvw::Loop::getDefault()}, m_tcpHandle{
+                                                                              m_loop->resource<uvw::TCPHandle>()}
 {
     const auto pos = config.find(":");
-    this->m_ip = config.substr(0, pos);
-    this->m_port = stoi(config.substr(pos + 1));
+    m_ip = config.substr(0, pos);
+    m_port = stoi(config.substr(pos + 1));
 
-    this->m_loop = uvw::Loop::getDefault();
-    this->m_server = m_loop->resource<uvw::TCPHandle>();
-
-    this->m_server->on<uvw::ListenEvent>(
-        [this](const uvw::ListenEvent & event, uvw::TCPHandle & server)
+    m_tcpHandle->on<uvw::ErrorEvent>(
+        [](const uvw::ErrorEvent & event, uvw::TCPHandle & tcpHandle)
         {
-            LOG(INFO) << "TCP ListenEvent: stablishing new connection" << endl;
-            this->connectionHandler(server);
-        });
-
-    this->m_server->on<uvw::ErrorEvent>(
-        [](const uvw::ErrorEvent & event, uvw::TCPHandle & client)
-        {
-            LOG(ERROR) << "TCP ErrorEvent: endpoint(" << client.sock().ip.c_str() << ":" << client.sock().port
+            LOG(ERROR) << "TCP ErrorEvent: endpoint(" << tcpHandle.sock().ip.c_str() << ":" << tcpHandle.sock().port
                        << ") error: code=" << event.code() << "; name=" << event.name() << "; message=" << event.what()
                        << endl;
         });
 
-    this->m_server->on<uvw::CloseEvent>([](const uvw::CloseEvent & event, uvw::TCPHandle & client)
-                                        { LOG(INFO) << "TCP CloseEvent" << endl; });
+    m_tcpHandle->on<uvw::ListenEvent>(
+        [this](const uvw::ListenEvent & event, uvw::TCPHandle & tcpHandle)
+        {
+            LOG(INFO) << "TCP ListenEvent: stablishing new connection" << endl;
+            this->connectionHandler(tcpHandle);
+        });
+
+    m_tcpHandle->on<uvw::CloseEvent>([](const uvw::CloseEvent & event, uvw::TCPHandle & tcpHandle)
+                                     { LOG(INFO) << "TCP CloseEvent" << endl; });
 
     LOG(INFO) << "TCP endpoint configured: " << config << endl;
 }
 
 void TCPEndpoint::run()
 {
-    m_server->bind(m_ip, m_port);
-    m_server->listen();
+    m_tcpHandle->bind(m_ip, m_port);
+    m_tcpHandle->listen();
     m_loop->run<uvw::Loop::Mode::DEFAULT>();
 }
 
@@ -125,7 +124,7 @@ void TCPEndpoint::close()
 
 TCPEndpoint::~TCPEndpoint()
 {
-    this->close();
+    close();
 };
 
 } // namespace engineserver::endpoints

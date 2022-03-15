@@ -7,8 +7,8 @@
  * Foundation.
  */
 
-#ifndef _TCP_ENDPOINT_H_
-#define _TCP_ENDPOINT_H_
+#ifndef _UDP_ENDPOINT_H_
+#define _UDP_ENDPOINT_H_
 
 #include <cstring>
 #include <functional>
@@ -17,8 +17,8 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
-#include <uvw/tcp.hpp>
 #include <uvw/timer.hpp>
+#include <uvw/udp.hpp>
 
 #include "baseEndpoint.hpp"
 #include "protocolHandler.hpp"
@@ -26,38 +26,34 @@
 namespace engineserver::endpoints
 {
 
-#define CONNECTION_TIMEOUT_MSEC 5000
-
 /**
- * @brief Implements tcp server endpoint using uvw library.
+ * @brief Implements udp server endpoint using uvw library.
  *
  */
-class TCPEndpoint : public BaseEndpoint
+class UDPEndpoint : public BaseEndpoint
 {
+
 private:
     unsigned int m_port;
     std::string m_ip;
 
     std::shared_ptr<uvw::Loop> m_loop;
-    std::shared_ptr<uvw::TCPHandle> m_tcpHandle;
-
-    void connectionHandler(uvw::TCPHandle & tcpHandle);
+    std::shared_ptr<uvw::UDPHandle> m_udpHandle;
 
 public:
     /**
-     * @brief Construct a new TCPEndpoint object
+     * @brief Construct a new UDPEndpoint object.
      *
-     * @param config
-     * @param eventBuffer
+     * @param config <ip>:<port> string with allowed ip mask and port to listen.
      */
-    explicit TCPEndpoint(const std::string & config, ServerOutput & eventBuffer);
-    ~TCPEndpoint();
+    explicit UDPEndpoint(const std::string & config, ServerOutput & eventBuffer);
+    ~UDPEndpoint();
 
-    void run() override;
+    void run(void);
 
-    void close() override;
+    void close(void);
 };
 
 } // namespace engineserver::endpoints
 
-#endif // _TCP_ENDPOINT_H_
+#endif // _UDP_ENDPOINT_H_

@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2021, Wazuh Inc.
+/* Copyright (C) 2015-2022, Wazuh Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it
@@ -10,8 +10,13 @@
 #include "engineServer.hpp"
 
 using std::endl;
+using std::make_unique;
 using std::string;
 using std::vector;
+
+using moodycamel::BlockingConcurrentQueue;
+
+using namespace engineserver::endpoints;
 
 namespace engineserver
 {
@@ -26,7 +31,7 @@ EngineServer::EngineServer(const vector<string> & config, size_t bufferSize)
             const auto pos = endpointConf.find(":");
 
             m_endpoints[endpointConf] =
-                endpoints::create(endpointConf.substr(0, pos), endpointConf.substr(pos + 1), m_eventBuffer);
+                createEndpoint(endpointConf.substr(0, pos), endpointConf.substr(pos + 1), m_eventBuffer);
         }
     }
     catch (const std::exception & e)
@@ -36,6 +41,25 @@ EngineServer::EngineServer(const vector<string> & config, size_t bufferSize)
     }
 
     m_isConfigured = true;
+}
+
+std::unique_ptr<BaseEndpoint> EngineServer::createEndpoint(const string & type, const string & path,
+                                                           BlockingConcurrentQueue<string> & eventBuffer) const
+{
+    if (type == "tcp")
+    {
+        return make_unique<TCPEndpoint>(path, eventBuffer);
+    }
+    else if (type == "udp")
+    {
+        return make_unique<UDPEndpoint>(path, eventBuffer);
+    }
+    else
+    {
+        throw std::runtime_error("Error, endpoint type " + type + " not implemented by factory Endpoint builder");
+    }
+
+    return nullptr;
 }
 
 // TODO: fix, only runs first endpoint because run is blocking
@@ -55,7 +79,7 @@ void EngineServer::close(void)
     }
 }
 
-moodycamel::BlockingConcurrentQueue<string> & EngineServer::output()
+BlockingConcurrentQueue<string> & EngineServer::output()
 {
     return m_eventBuffer;
 }
