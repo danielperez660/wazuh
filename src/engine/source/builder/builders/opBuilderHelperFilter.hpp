@@ -13,6 +13,8 @@
 #include "builderTypes.hpp"
 #include "stringUtils.hpp"
 
+#include <optional>
+
 /*
  * The helper filter, builds a lifter that will chain rxcpp filter operation
  * Rxcpp filter expects a function that returns bool.
