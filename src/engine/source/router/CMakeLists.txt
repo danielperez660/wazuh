@@ -17,8 +17,9 @@ CPMAddPackage(
   GITHUB_REPOSITORY ReactiveX/RxCpp
   GIT_TAG v4.1.1
   VERSION 4.1.1
+  OPTIONS
+    "RXCPP_DISABLE_TESTS_AND_EXAMPLES"
 )
-list(APPEND EXTERNAL_DEPS "rxcpp")
 
 # Add this dependencies to parent CMakeLists scope
 set(EXTERNAL_DEPS ${EXTERNAL_DEPS} PARENT_SCOPE)
@@ -28,4 +29,5 @@ set(EXTERNAL_DEPS ${EXTERNAL_DEPS} PARENT_SCOPE)
 ####################################################################################################
 target_include_directories(main PUBLIC
     ${ROUTER_SERVER_SOURCE_DIR}
+    ${RxCpp_SOURCE_DIR}/Rx/v2/src
 )

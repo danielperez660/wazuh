@@ -26,6 +26,8 @@ CPMAddPackage(
   GITHUB_REPOSITORY ReactiveX/RxCpp
   GIT_TAG v4.1.1
   VERSION 4.1.1
+  OPTIONS
+    "RXCPP_DISABLE_TESTS_AND_EXAMPLES"
 )
 
 # Tencent/rapidjson
@@ -52,12 +54,13 @@ FetchContent_GetProperties(
 include_directories(
   ${JSON_ENGINE_SOURCE_DIR}
   ${rapidjson_headers}/include
+  ${RxCpp_SOURCE_DIR}/Rx/v2/src
 )
 
 link_libraries(
   gtest_main
-  rxcpp
 )
+
 # Json tests
 add_executable(jsonTest ${JSON_TEST_SOURCE_DIR}/jsonTest.cpp )
 gtest_discover_tests(jsonTest)

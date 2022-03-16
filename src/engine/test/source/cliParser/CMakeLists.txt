@@ -21,15 +21,6 @@ CPMAddPackage(
       "INSTALL_GTEST OFF"
 )
 
-# ReactiveX/RxCpp
-CPMAddPackage(
-  NAME RxCpp
-  GITHUB_REPOSITORY ReactiveX/RxCpp
-  GIT_TAG v4.1.1
-  VERSION 4.1.1
-)
-
-# Tencent/rapidjson
 CPMAddPackage(
   NAME argparse
   GITHUB_REPOSITORY p-ranav/argparse
@@ -40,7 +31,6 @@ FetchContent_GetProperties(
   argparse
   SOURCE_DIR argparse_headers
 )
-
 ####################################################################################################
 # Headers -- Libraries
 ####################################################################################################
@@ -54,7 +44,6 @@ include_directories(
 
 link_libraries(
   gtest_main
-  rxcpp
 )
 
 # CLI Parser test

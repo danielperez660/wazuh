@@ -7,7 +7,7 @@ CPMAddPackage(
   GIT_TAG v4.1.1
   VERSION 4.1.1
   OPTIONS
-    "MAKE_BUILD_TYPE RelWithDebInfo"
+    "RXCPP_DISABLE_TESTS_AND_EXAMPLES"
 )
 
 CPMAddPackage(
