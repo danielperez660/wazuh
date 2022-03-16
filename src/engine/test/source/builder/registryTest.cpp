@@ -38,6 +38,6 @@ TEST(Registry, GetBuilderAndBuilds)
 {
     auto buildB = std::get<types::OpBuilder>(Registry::getBuilder("test"));
     types::Observable o = rxcpp::observable<>::empty<types::Event>();
-    types::Observable expected = buildB(*Document(R"({"test":1})").get("/test"))(o);
+    types::Observable expected = buildB(Document(R"({"test":1})").get("/test"))(o);
     ASSERT_EQ(o, expected);
 }
