@@ -59,6 +59,5 @@ link_libraries(
   rxcpp
 )
 # Json tests
-add_executable(json_test ${JSON_TEST_SOURCE_DIR}/json_test.cpp )
-gtest_discover_tests(json_test)
-list(APPEND ALL_BUILDER_TESTS ${JSON_TEST_SOURCE_DIR}/json_test.cpp)
+add_executable(jsonTest ${JSON_TEST_SOURCE_DIR}/jsonTest.cpp )
+gtest_discover_tests(jsonTest)
