@@ -25,8 +25,9 @@ CPMAddPackage(
   GITHUB_REPOSITORY ReactiveX/RxCpp
   GIT_TAG v4.1.1
   VERSION 4.1.1
+  OPTIONS
+    "RXCPP_DISABLE_TESTS_AND_EXAMPLES"
 )
-list(APPEND EXTERNAL_DEPS "rxcpp")
 
 CPMAddPackage(
   NAME RE2
@@ -88,4 +89,5 @@ target_include_directories(main PUBLIC
     ${BUILDER_ENGINE_SOURCE_DIR}/builders
     ${ENGINE_SOURCE_DIR}/shared
     ${rapidjson_headers}/include
+    ${RxCpp_SOURCE_DIR}/Rx/v2/src
 )
