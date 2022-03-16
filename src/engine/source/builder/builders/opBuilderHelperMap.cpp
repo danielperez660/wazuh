@@ -46,10 +46,11 @@ Event opBuilderHelperStringTransformation(const std::string field, char op, Even
     {
         // Get reference to json event
         // TODO Remove try catch or if nullptr after fix get method of document class
+        // TODO Update to use proper reference
         const rapidjson::Value * refValueToCheck{};
         try
         {
-            refValueToCheck = e->get(refValue.value());
+            refValueToCheck = &e->get(refValue.value());
         }
         catch (std::exception & ex)
         {
@@ -124,7 +125,7 @@ Event opBuilderHelperIntTransformation(const std::string field, std::string op, 
     const rapidjson::Value * fieldValue {};
     try
     {
-        fieldValue = e->get(field);
+        fieldValue = &e->get(field);
     }
     catch (std::exception & ex)
     {
@@ -144,7 +145,7 @@ Event opBuilderHelperIntTransformation(const std::string field, std::string op, 
         const rapidjson::Value * refValueToCheck {};
         try
         {
-            refValueToCheck = e->get(refValue.value());
+            refValueToCheck = &e->get(refValue.value());
         }
         catch (std::exception & ex)
         {
@@ -214,7 +215,7 @@ types::Lifter opBuilderHelperStringUP(const types::DocumentValue & def)
 {
     // Get field key to check
 
-    std::string key {json::Document::preparePath(def.MemberBegin()->name.GetString())};
+    std::string key {json::formatJsonPath(def.MemberBegin()->name.GetString())};
 
     // Get the raw value of parameter
     if (!def.MemberBegin()->value.IsString())
@@ -237,7 +238,7 @@ types::Lifter opBuilderHelperStringUP(const types::DocumentValue & def)
     // Check if is a reference to json event
     if (parametersArr[1][0] == REFERENCE_ANCHOR)
     {
-        refExpStr = json::Document::preparePath(parametersArr[1].substr(1));
+        refExpStr = json::formatJsonPath(parametersArr[1].substr(1));
     }
     else
     {
@@ -261,7 +262,7 @@ types::Lifter opBuilderHelperStringLO(const types::DocumentValue & def)
 {
 
     // Get field key to check
-    std::string key {json::Document::preparePath(def.MemberBegin()->name.GetString())};
+    std::string key {json::formatJsonPath(def.MemberBegin()->name.GetString())};
 
     // Get the raw value of parameter
     if (!def.MemberBegin()->value.IsString())
@@ -284,7 +285,7 @@ types::Lifter opBuilderHelperStringLO(const types::DocumentValue & def)
     // Check if is a reference to json event
     if (parametersArr[1][0] == REFERENCE_ANCHOR)
     {
-        refExpStr = json::Document::preparePath(parametersArr[1].substr(1));
+        refExpStr = json::formatJsonPath(parametersArr[1].substr(1));
     }
     else
     {
@@ -308,7 +309,7 @@ types::Lifter opBuilderHelperStringTrim(const types::DocumentValue & def)
 {
 
     // Get field path to trim
-    std::string field {json::Document::preparePath(def.MemberBegin()->name.GetString())};
+    std::string field {json::formatJsonPath(def.MemberBegin()->name.GetString())};
 
     // Get the raw value of parameter
     if (!def.MemberBegin()->value.IsString())
@@ -355,7 +356,7 @@ types::Lifter opBuilderHelperStringTrim(const types::DocumentValue & def)
                 const rapidjson::Value * fieldValue;
                 try
                 {
-                    fieldValue = e->get(field);
+                    fieldValue = &e->get(field);
                 }
                 catch (std::exception & ex)
                 {
@@ -420,7 +421,7 @@ types::Lifter opBuilderHelperStringTrim(const types::DocumentValue & def)
 types::Lifter opBuilderHelperIntCalc(const types::DocumentValue & def)
 {
     // Get field
-    std::string field {json::Document::preparePath(def.MemberBegin()->name.GetString())};
+    std::string field {json::formatJsonPath(def.MemberBegin()->name.GetString())};
     std::string rawValue {def.MemberBegin()->value.GetString()};
 
     std::vector<std::string> parameters {utils::string::split(rawValue, '/')};
@@ -451,7 +452,7 @@ types::Lifter opBuilderHelperIntCalc(const types::DocumentValue & def)
     if (parameters[2][0] == REFERENCE_ANCHOR)
     {
         // Check case `+i_calc/op/$`
-        refValue = json::Document::preparePath(parameters[2].substr(1, std::string::npos));
+        refValue = json::formatJsonPath(parameters[2].substr(1, std::string::npos));
     }
     else
     {
@@ -476,7 +477,7 @@ types::Lifter opBuilderHelperIntCalc(const types::DocumentValue & def)
 types::Lifter opBuilderHelperRegexExtract(const types::DocumentValue & def)
 {
     // Get fields
-    std::string field {json::Document::preparePath(def.MemberBegin()->name.GetString())};
+    std::string field {json::formatJsonPath(def.MemberBegin()->name.GetString())};
     std::string value {def.MemberBegin()->value.GetString()};
 
     std::vector<std::string> parameters {utils::string::split(value, '/')};
@@ -485,7 +486,7 @@ types::Lifter opBuilderHelperRegexExtract(const types::DocumentValue & def)
         throw std::runtime_error("Invalid number of parameters");
     }
 
-    std::string map_field {json::Document::preparePath(parameters[1])};
+    std::string map_field {json::formatJsonPath(parameters[1])};
 
     auto regex_ptr {std::make_shared<RE2>(parameters[2])};
     if (!regex_ptr->ok())
@@ -506,7 +507,7 @@ types::Lifter opBuilderHelperRegexExtract(const types::DocumentValue & def)
                 const rapidjson::Value * field_str{};
                 try
                 {
-                    field_str = e->get(field);
+                    field_str = &e->get(field);
                 }
                 catch (std::exception & ex)
                 {
