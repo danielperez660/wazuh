@@ -160,6 +160,12 @@ add_executable(graphTest
 target_link_libraries(graphTest gtest_main)
 gtest_discover_tests(graphTest)
 
+add_executable(connectableTest
+  ${BUILDER_TEST_SOURCE_DIR}/connectableTest.cpp
+)
+target_link_libraries(connectableTest gtest_main)
+gtest_discover_tests(connectableTest)
+
 ####################################################################################################
 # Builders targets
 ####################################################################################################
