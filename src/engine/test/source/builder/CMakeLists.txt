@@ -37,6 +37,8 @@ CPMAddPackage(
   GITHUB_REPOSITORY ReactiveX/RxCpp
   GIT_TAG v4.1.1
   VERSION 4.1.1
+  OPTIONS
+    "RXCPP_DISABLE_TESTS_AND_EXAMPLES"
 )
 
 CPMAddPackage(
@@ -76,12 +78,12 @@ include_directories(
   ${ENGINE_SOURCE_DIR}/json
   ${ENGINE_SOURCE_DIR}/graph
   ${rapidjson_headers}/include
+  ${RxCpp_SOURCE_DIR}/Rx/v2/src
 )
 
 link_libraries(
   glog::glog
   gtest_main
-  rxcpp
   re2
 )
 
@@ -149,6 +151,14 @@ add_executable(registerTest
   )
 target_link_libraries(registerTest glog::glog)
 gtest_discover_tests(registerTest)
+
+# Configuration graph test
+add_executable(graphTest
+  ${BUILDER_TEST_SOURCE_DIR}/graphTest.cpp
+)
+
+target_link_libraries(graphTest gtest_main)
+gtest_discover_tests(graphTest)
 
 ####################################################################################################
 # Builders targets
