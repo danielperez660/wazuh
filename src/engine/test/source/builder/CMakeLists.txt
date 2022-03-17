@@ -85,6 +85,7 @@ link_libraries(
   glog::glog
   gtest_main
   re2
+  hlp
 )
 
 ####################################################################################################
@@ -114,6 +115,7 @@ add_executable(builderTest
   ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/assetBuilderFilter.cpp
   ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/assetBuilderRule.cpp
   ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/assetBuilderDecoder.cpp
+  ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/stageParse.cpp
 )
 target_link_libraries(builderTest glog::glog)
 gtest_discover_tests(builderTest)
@@ -148,6 +150,7 @@ add_executable(registerTest
   ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/assetBuilderFilter.cpp
   ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/assetBuilderRule.cpp
   ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/assetBuilderDecoder.cpp
+  ${BUILDER_BUILDERS_ENGINE_SOURCE_DIR}/stageParse.cpp
   )
 target_link_libraries(registerTest glog::glog)
 gtest_discover_tests(registerTest)
