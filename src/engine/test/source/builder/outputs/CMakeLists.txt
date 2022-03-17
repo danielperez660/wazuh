@@ -4,6 +4,8 @@ CPMAddPackage(
   GITHUB_REPOSITORY ReactiveX/RxCpp
   GIT_TAG v4.1.1
   VERSION 4.1.1
+  OPTIONS
+    "RXCPP_DISABLE_TESTS_AND_EXAMPLES"
 )
 # Configuration router test
 add_executable(fileOutputTest

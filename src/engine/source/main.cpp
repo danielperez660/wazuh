@@ -102,7 +102,7 @@ int main(int argc, char * argv[])
                      try
                      {
                          // Default route
-                         router.add("test_route", "test_environment");
+                         router.add("test_route", "demo_environment");
                      }
                      catch (const exception & e)
                      {

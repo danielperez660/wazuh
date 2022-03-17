@@ -31,7 +31,8 @@ types::Lifter opBuilderConditionReference(const types::DocumentValue & def)
     // Estract and prepare field and reference
     std::string field{json::formatJsonPath(def.MemberBegin()->name.GetString())};
     std::string reference{def.MemberBegin()->value.GetString()};
-    if (reference.front() == '$'){
+    if (reference.front() == '$')
+    {
         reference.erase(0, 1);
     }
     reference = json::formatJsonPath(reference);
@@ -43,7 +44,16 @@ types::Lifter opBuilderConditionReference(const types::DocumentValue & def)
         return o.filter(
             [=](types::Event e)
             {
-                return e->equals(field, reference);
+                if (e->equals(field, reference))
+                {
+                    std::cerr << "    {" << field << ": " << reference << "} SUCCES event" << std::endl;
+                    return true;
+                }
+                else
+                {
+                    std::cerr << "    {" << field << ": " << reference << "} FAILED event" << std::endl;
+                    return false;
+                }
             });
     };
 }

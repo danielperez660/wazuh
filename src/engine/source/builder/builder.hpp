@@ -108,8 +108,8 @@ public:
             auto ruleGraph =
                 this->assetBuilder("rule", asset.get("/rules"),
                                    std::get<internals::types::AssetBuilder>(internals::Registry::getBuilder("rule")));
-            //ruleGraph.addParentEdges("INPUT_RULE", "OUTPUT_RULE");
-            subGraphs.push_back(std::make_tuple("INPUT_RULE", ruleGraph, "OUTPUT_RULE"));
+            // ruleGraph.addParentEdges("INPUT_RULE", "OUTPUT_RULE");
+            subGraphs.push_back(std::make_tuple("INPUT_ARULE", ruleGraph, "OUTPUT_RULE"));
         }
 
         // Build output subgraph
@@ -118,7 +118,7 @@ public:
             auto outputGraph =
                 this->assetBuilder("output", asset.get("/outputs"),
                                    std::get<internals::types::AssetBuilder>(internals::Registry::getBuilder("output")));
-            //outputGraph.addParentEdges("INPUT_OUTPUT", "OUTPUT_OUTPUT");
+            // outputGraph.addParentEdges("INPUT_OUTPUT", "OUTPUT_OUTPUT");
             subGraphs.push_back(std::make_tuple("INPUT_OUTPUT", outputGraph, "OUTPUT_OUTPUT"));
         }
 
@@ -127,7 +127,7 @@ public:
         {
             throw std::runtime_error("Error building graph, atleast one subgraph must be defined");
         }
-        auto graphTuple = subGraphs[0];
+        auto graphTuple = subGraphs[0]; // input graph output
         internals::Graph g = std::get<1>(graphTuple);
         g.addParentEdges(std::get<0>(graphTuple), std::get<2>(graphTuple));
         for (auto it = ++subGraphs.begin(); it != subGraphs.end(); ++it)
@@ -156,8 +156,10 @@ public:
         if (asset.exists("/decoders") && asset.exists("/rules") && asset.exists("/outputs"))
         {
             g.addEdge("OUTPUT_DECODER", "INPUT_OUTPUT");
-            g.m_nodes["INPUT_OUTPUT"].m_parents.push_back("OUTPUT_DECODER");
+            g.m_nodes["INPUT_OUTPUT"].m_parents.insert("OUTPUT_DECODER");
         }
+
+        std::cout << g.print().str() << std::endl;
 
         return g;
     }
@@ -172,6 +174,7 @@ public:
      */
     internals::types::Lifter operator()(const std::string & name)
     {
+
         // Lifter
         return [=](internals::types::Observable o) -> internals::types::Observable
         {
@@ -199,8 +202,9 @@ public:
                 {
                     if (g.m_edges[root].size() > 1)
                     {
-                        auto o = g[root].connect().publish();
-                        toConnect.push_back(o);
+                        auto o = g[root].connect().publish().ref_count();
+                        std::cout << root << " PUBLISHED" << std::endl;
+                        //toConnect.push_back(o);
                         return o;
                     }
                     else
@@ -213,12 +217,6 @@ public:
                 for (auto & n : g.m_edges[root])
                 {
                     g[n].addInput(obs);
-                }
-
-                // TODO: merge both fors?
-                // Visit childs only if all child inputs have been passed
-                for (auto & n : g.m_edges[root])
-                {
                     if (g[n].m_inputs.size() == g[n].m_parents.size())
                         visit_ref(obs, n, visit_ref);
                 }
@@ -236,7 +234,8 @@ public:
             // Call observables.connect in inverse order of connectable.publish calls
             for (auto it = toConnect.rbegin(); it != toConnect.rend(); ++it)
             {
-                it->connect();
+                // it->connect();
+                // std::cout << " connected" << std::endl;
             }
 
             // Finally return output

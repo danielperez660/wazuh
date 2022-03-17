@@ -12,6 +12,7 @@
 
 #include "json.hpp"
 #include "rxcpp/rx.hpp"
+#include <set>
 
 namespace builder::internals
 {
@@ -42,7 +43,7 @@ template <class Observable> struct Connectable
      * @brief The name of the parents of this connectable, derived directly
      * from the assets definition.
      */
-    std::vector<std::string> m_parents;
+    std::set<std::string> m_parents;
 
     /**
      * @brief The parents' outputs are this connectable inputs. Each connecatble
@@ -58,7 +59,16 @@ template <class Observable> struct Connectable
      * @param p vector of parents names
      * @param o the operation this connectable must do to the input stream.
      */
-    Connectable(std::string n, std::vector<std::string> p, Op_t o) : m_op(o), m_name(n), m_parents(p)
+    Connectable(std::string n, std::vector<std::string> p, Op_t o)
+        : m_op(
+              [n, o](Observable ob) -> Observable
+              {
+                  return o(ob.tap([n](auto e) { std::cout << "------------- Asset " << n << " got: " << std::endl; },
+                                  [](auto eptr) {}, []() {}))
+                      .tap([n](auto e) { std::cout << "------------- Asset " << n << " snt: " << std::endl; },
+                           [](auto eptr) {}, []() {});
+              }),
+          m_name(n), m_parents(p.begin(), p.end())
     {
     }
 
@@ -73,13 +83,25 @@ template <class Observable> struct Connectable
     {
         if (n.find("OUTPUT_") == std::string::npos)
         {
-            m_op = [](Observable o) { return o; };
+            m_op = [n](Observable o)
+            {
+                return o.tap([n](auto e) { std::cout << "------------- NODE " << n << " fwd: " << std::endl; },
+                             [](auto eptr) {}, []() {});
+            };
         }
         else
         {
-            m_op = [](Observable o) { return o.distinct_until_changed(); };
+            m_op = [n](Observable o)
+            {
+                return o
+                    .tap([n](auto e) { std::cout << "------------- NODE " << n << " got: " << std::endl; },
+                         [](auto eptr) {}, []() {})
+                    .distinct_until_changed()
+                    .tap([n](auto e) { std::cout << "------------- NODE " << n << " snt: " << std::endl; },
+                         [](auto eptr) {}, []() {});
+            };
         }
-    };
+    }
 
     /**
      * @brief Default constructor, needed my map
@@ -108,6 +130,7 @@ template <class Observable> struct Connectable
      */
     Observable connect(const Observable & input)
     {
+        std::cout << "========= " << m_name << " CONNECTED??" << std::endl;
         return m_op(input);
     }
 
@@ -119,6 +142,7 @@ template <class Observable> struct Connectable
      */
     Observable connect()
     {
+        std::cout << "========= " << m_name << " CONNECTED" << std::endl;
         if (m_inputs.size() > 1)
         {
             return m_op(rxcpp::observable<>::iterate(m_inputs).merge());

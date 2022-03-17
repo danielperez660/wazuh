@@ -52,11 +52,11 @@ std::shared_ptr<json::Document> ProtocolHandler::parse(const string & event)
         throw_with_nested(std::invalid_argument("Error parsing queue id"));
     }
 
-    auto locPos = event.find(":", queuePos + 1);
+    auto locPos = event.find(":", queuePos+1);
     try
     {
         rapidjson::Value loc;
-        string location = event.substr(queuePos, locPos);
+        string location = event.substr(queuePos + 1, locPos-2);
         loc.SetString(location.c_str(), location.length(), allocator);
         doc->m_doc.AddMember("location", loc, allocator);
     }
@@ -70,7 +70,7 @@ std::shared_ptr<json::Document> ProtocolHandler::parse(const string & event)
         rapidjson::Value msg;
         string message = event.substr(locPos + 1, string::npos);
         msg.SetString(message.c_str(), message.length(), allocator);
-        doc->m_doc.AddMember("message", msg, allocator);
+        doc->m_doc.AddMember("messageProto", msg, allocator);
     }
     catch (std::out_of_range & e)
     {

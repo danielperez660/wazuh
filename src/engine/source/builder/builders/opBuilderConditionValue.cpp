@@ -30,7 +30,13 @@ types::Lifter opBuilderConditionValue(const types::DocumentValue & def)
     {
         // Append rxcpp operation
         return o.filter([=](types::Event e) {
-            return e->equals(field, value.begin()->value);
+            if(e->equals(field, value.begin()->value)){
+                std::cerr << "    " << value.str() << " SUCCES event" << std::endl;
+                return true;
+            }else{
+                std::cerr << "    " << value.str() << " FAILED event" << std::endl;
+                return false;
+            }
         });
     };
 }

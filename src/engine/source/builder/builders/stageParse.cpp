@@ -61,7 +61,8 @@ types::Lifter stageBuilderParse(const types::DocumentValue &def)
         }
 
         // TODO hard-coded 'event.original'
-        auto logQlExpr = item["event.original"].GetString();
+        auto field = json::formatJsonPath(item.MemberBegin()->name.GetString());
+        auto logQlExpr = item.MemberBegin()->value.GetString();
 
         ParserFn parseOp;
         try{
@@ -75,34 +76,39 @@ types::Lifter stageBuilderParse(const types::DocumentValue &def)
             std::throw_with_nested(std::runtime_error(msg));
         }
 
-        auto newOp = [parserOp = std::move(parseOp)](types::Observable o)
+        auto newOp = [parserOp = std::move(parseOp), field](types::Observable o)
         {
-            return o.map(
-                [parserOp = std::move(parserOp)](types::Event e)
+            return o.filter(
+                [parserOp = std::move(parserOp), field](types::Event e)
                 {
-                    const auto & ev = e->get("/message");
+                    std::cout << "["  << field << "] got" << std::endl;
+                    if (!e->exists(field))
+                        return false;
+                    const auto & ev = e->get(field);
                     if (!ev.IsString())
                     {
                         // TODO error
-                        return e;
+                        std::cerr << "Error is not string" << std::endl;
+                        return false;
                     }
-
+                    std::cout << "["  << field << "] is string" << std::endl;
                     ParseResult result;
                     auto ok = parserOp(ev.GetString(), result);
                     if (!ok)
                     {
                         // TODO error
-                        return e;
+                        std::cerr << "Error parsing" << std::endl;
+                        return false;
                     }
-
+                    std::cout << "["  << field << "] ok" << std::endl;
                     for (auto const &val : result)
                     {
                         auto name =
                             json::formatJsonPath(val.first.c_str());
                         e->set(name, {val.second.c_str(), e->getAllocator()});
                     }
-
-                    return e;
+                    std::cout << "["  << field << "] setted" << std::endl;
+                    return true;
                 });
         };
 
