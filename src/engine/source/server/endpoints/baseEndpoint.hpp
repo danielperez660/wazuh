@@ -11,7 +11,6 @@
 #define _BASE_ENDPOINT_H_
 
 #include <blockingconcurrentqueue.h>
-#include <rxcpp/rx.hpp>
 #include <string>
 
 /**

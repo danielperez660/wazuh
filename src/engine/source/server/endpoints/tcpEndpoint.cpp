@@ -7,6 +7,14 @@
  * Foundation.
  */
 
+#include <cstring>
+#include <glog/logging.h>
+#include <iostream>
+#include <mutex>
+#include <stdexcept>
+#include <uvw/timer.hpp>
+
+#include "protocolHandler.hpp"
 #include "tcpEndpoint.hpp"
 
 using std::endl;
@@ -25,9 +33,9 @@ using uvw::TimerHandle;
 namespace engineserver::endpoints
 {
 
-void TCPEndpoint::connectionHandler(TCPHandle & tcpHandle)
+void TCPEndpoint::connectionHandler(TCPHandle & handle)
 {
-    auto client = tcpHandle.loop().resource<TCPHandle>();
+    auto client = handle.loop().resource<TCPHandle>();
     auto timer = client->loop().resource<TimerHandle>();
 
     auto protocolHandler = std::make_shared<ProtocolHandler>();
@@ -79,7 +87,7 @@ void TCPEndpoint::connectionHandler(TCPHandle & tcpHandle)
     client->on<CloseEvent>([](const CloseEvent & event, TCPHandle & client)
                            { LOG(INFO) << "TCP CloseEvent: Connection closed" << endl; });
 
-    tcpHandle.accept(*client);
+    handle.accept(*client);
     LOG(INFO) << "TCP ListenEvent: Client accepted" << endl;
 
     timer->start(TimerHandle::Time{CONNECTION_TIMEOUT_MSEC}, TimerHandle::Time{CONNECTION_TIMEOUT_MSEC});
@@ -88,37 +96,37 @@ void TCPEndpoint::connectionHandler(TCPHandle & tcpHandle)
 }
 
 TCPEndpoint::TCPEndpoint(const string & config, ServerOutput & eventBuffer)
-    : BaseEndpoint{config, eventBuffer}, m_loop{Loop::getDefault()}, m_tcpHandle{m_loop->resource<TCPHandle>()}
+    : BaseEndpoint{config, eventBuffer}, m_loop{Loop::getDefault()}, m_handle{m_loop->resource<TCPHandle>()}
 {
     const auto pos = config.find(":");
     m_ip = config.substr(0, pos);
     m_port = stoi(config.substr(pos + 1));
 
-    m_tcpHandle->on<ErrorEvent>(
-        [](const ErrorEvent & event, TCPHandle & tcpHandle)
+    m_handle->on<ErrorEvent>(
+        [](const ErrorEvent & event, TCPHandle & handle)
         {
-            LOG(ERROR) << "TCP ErrorEvent: endpoint(" << tcpHandle.sock().ip.c_str() << ":" << tcpHandle.sock().port
+            LOG(ERROR) << "TCP ErrorEvent: endpoint(" << handle.sock().ip.c_str() << ":" << handle.sock().port
                        << ") error: code=" << event.code() << "; name=" << event.name() << "; message=" << event.what()
                        << endl;
         });
 
-    m_tcpHandle->on<ListenEvent>(
-        [this](const ListenEvent & event, TCPHandle & tcpHandle)
+    m_handle->on<ListenEvent>(
+        [this](const ListenEvent & event, TCPHandle & handle)
         {
             LOG(INFO) << "TCP ListenEvent: stablishing new connection" << endl;
-            this->connectionHandler(tcpHandle);
+            this->connectionHandler(handle);
         });
 
-    m_tcpHandle->on<CloseEvent>([](const CloseEvent & event, TCPHandle & tcpHandle)
-                                { LOG(INFO) << "TCP CloseEvent" << endl; });
+    m_handle->on<CloseEvent>([](const CloseEvent & event, TCPHandle & handle)
+                             { LOG(INFO) << "TCP CloseEvent" << endl; });
 
     LOG(INFO) << "TCP endpoint configured: " << config << endl;
 }
 
 void TCPEndpoint::run()
 {
-    m_tcpHandle->bind(m_ip, m_port);
-    m_tcpHandle->listen();
+    m_handle->bind(m_ip, m_port);
+    m_handle->listen();
     m_loop->run<Loop::Mode::DEFAULT>();
 }
 

@@ -10,17 +10,7 @@
 #ifndef _ENGINE_SERVER_H_
 #define _ENGINE_SERVER_H_
 
-#include <glog/logging.h>
-#include <map>
-#include <memory>
-#include <rxcpp/rx.hpp>
-#include <stdexcept>
-#include <string>
-#include <vector>
-
-#include "endpoints/tcpEndpoint.hpp"
-#include "endpoints/udpEndpoint.hpp"
-#include "endpoints/datagramSocketEndpoint.hpp"
+#include "endpoints/baseEndpoint.hpp"
 
 /**
  * @brief Defines all related server functionality.

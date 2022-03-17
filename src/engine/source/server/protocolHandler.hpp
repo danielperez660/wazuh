@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2021, Wazuh Inc.
+/* Copyright (C) 2015-2022, Wazuh Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it
@@ -9,11 +9,6 @@
 
 #ifndef _PROTOCOL_HANDLER_H_
 #define _PROTOCOL_HANDLER_H_
-
-#include <glog/logging.h>
-#include <iostream>
-#include <optional>
-#include <string>
 
 #include "json.hpp"
 
